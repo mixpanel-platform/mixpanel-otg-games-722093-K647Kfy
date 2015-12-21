@@ -7,9 +7,62 @@
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
   </head>
   <body class="mixpanel-platform-body">
-    <h1>Hello, World!</h1>
+    <div id="table"></div>
     <script>
-      // Run queries and display results here
+      var eventTable  = $('#table').MPTable({
+        showPercentages: false,
+        firstColHeader: 'Event'
+      });
+      
+      var from = moment().subtract(new Date().getDate() - 1, 'days');
+      var where = 'properties["venue_id"]=="63"';
+      var data = null;
+      var queries = [];
+      
+      queries.push({ event: 'Video Ad Started', name: 'Video Ads Shown', params: { from: from, unit: 'day', where: where } });
+      queries.push({ event: 'Create Account Attempt', name: 'Accounts Created', params: { from: from, unit: 'day', where: where } });
+      queries.push({ event: 'Start Game', name: 'Games Played - Temple Quest', params: { from: from, unit: 'day', where: where + ' and properties["game"]=="TempleQuest"' } });
+      queries.push({ event: 'Start Game', name: 'Games Played - Save the Princess', params: { from: from, unit: 'day', where: where + ' and properties["game"]=="SaveThePrincess"' } });
+      queries.push({ event: 'Start Game', name: 'Games Played - Cupids Arrow', params: { from: from, unit: 'day', where: where + ' and properties["game"]=="Cupid Arrow"' } });
+      queries.push({ event: 'Start Game', name: 'Games Played - Game Day Gold', params: { from: from, unit: 'day', where: where + ' and properties["game"]=="GameDayGold"' } });
+      queries.push({ event: 'Spin', name: 'Games Played - Beach Slots', params: { from: from, unit: 'day', where: where + ' and properties["game"]=="Beach Slots"' } });
+      queries.push({ event: 'Reward Points Spent', property: 'amount', name: 'Reward Points Spent', params: { from: from, unit: 'day', method: 'sum', where: where } });
+      queries.push({ event: 'Reward Points Gained', property: 'amount', name: 'Reward Points Won', params: { from: from, unit: 'day', method: 'sum', where: where } });
+      queries.push({ event: 'Tokens Gained', property: 'amount', name: 'Tokens Gained - Daily Bonus', params: { from: from, unit: 'day', method: 'sum', where: where + ' and properties["source"]=="daily_bonus"' } });
+      queries.push({ event: 'Tokens Gained', property: 'amount', name: 'Tokens Gained - Video Ads', params: { from: from, unit: 'day', method: 'sum', where: where + ' and properties["source"]=="video_ad"' } });
+      queries.push({ event: 'Tokens Gained', property: 'amount', name: 'Tokens Gained - Food Order', params: { from: from, unit: 'day', method: 'sum', where: where + ' and properties["source"]=="food_order"' } });
+      queries.push({ event: 'Tokens Gained', property: 'amount', name: 'Tokens Gained - Win', params: { from: from, unit: 'day', method: 'sum', where: where + ' and properties["source"]=="win"' } });
+      queries.push({ event: 'Tokens Spent', property: 'amount', name: 'Total Tokens Spent', params: { from: from, unit: 'day', method: 'sum', where: where } });
+      queries.push({ event: 'Session Started', name: 'Unique Sessions Started', params: { from: from, unit: 'day', type: 'unique', where: where } });
+
+      var runQuery = function() {
+          var query = queries.pop();
+          MP.api.segment(query.event, query.property, query.params).done(function(results) {
+            console.log(results.json);
+            
+            if(data == null)
+              data = jQuery.extend({}, results);
+              
+            console.log(data.json);
+            
+            if(query.params.method == 'sum')
+              data.json[query.name] = jQuery.extend({}, results.json);
+            else {
+              data.json[query.name] = jQuery.extend({}, results.json[query.event]);
+              
+              if(query.name != query.event)
+                delete data.json[query.event];
+            }
+            
+            if(queries.length > 0)
+              runQuery();
+            else
+              console.log(data)
+              eventTable.MPTable('setData', data);
+          });
+      };
+      
+      $(runQuery);
     </script>
   </body>
 </html>
